@@ -21,10 +21,10 @@ export default async function DashboardPage() {
     prisma.weightLog.findFirst({ where: { userId }, orderBy: { date: "desc" } }),
   ])
 
-  const totalCalories = foodToday.reduce((s: number, f) => s + f.calories, 0)
-  const totalProtein = foodToday.reduce((s: number, f) => s + f.proteinG, 0)
-  const totalCarbs = foodToday.reduce((s: number, f) => s + f.carbsG, 0)
-  const totalFat = foodToday.reduce((s: number, f) => s + f.fatG, 0)
+  const totalCalories = foodToday.reduce((s: number, f: { calories: number }) => s + f.calories, 0)
+  const totalProtein = foodToday.reduce((s: number, f: { proteinG: number }) => s + f.proteinG, 0)
+  const totalCarbs = foodToday.reduce((s: number, f: { carbsG: number }) => s + f.carbsG, 0)
+  const totalFat = foodToday.reduce((s: number, f: { fatG: number }) => s + f.fatG, 0)
   const goalCal = profile?.dailyCalories ?? 2000
   const pct = Math.min(Math.round((totalCalories / goalCal) * 100), 100)
 
