@@ -5,7 +5,7 @@ import { es } from "date-fns/locale"
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
 } from "recharts"
-import BodySilhouette from "@/components/ui/BodySilhouette"
+import BodySilhouette, { BodyComparison } from "@/components/ui/BodySilhouette"
 
 interface WeightLog { id: string; date: string; weightKg: number; notes: string | null }
 interface Profile { heightCm: number | null; goalWeightKg: number | null }
@@ -85,35 +85,43 @@ export default function ProgressPage() {
       {/* Silueta corporal */}
       {profile?.heightCm && weights.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h3 className="font-semibold text-slate-800 text-sm mb-5">Tu figura</h3>
-          <div className="flex justify-around items-end gap-2">
-            {weights.length > 1 && (
-              <BodySilhouette
-                weightKg={weights[0].weightKg}
-                heightCm={profile.heightCm}
-                label="Inicio"
-                sublabel={format(new Date(weights[0].date), "d MMM yy", { locale: es })}
-                faded
-              />
+          <h3 className="font-semibold text-slate-800 text-sm mb-5">Evolucion de tu figura</h3>
+          <div className="flex flex-col md:flex-row items-center justify-around gap-8">
+            {/* Comparacion superpuesta: inicio vs ahora */}
+            {weights.length > 1 ? (
+              <div className="flex flex-col items-center gap-1">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Comparativa</p>
+                <BodyComparison
+                  initialWeight={weights[0].weightKg}
+                  currentWeight={weights[weights.length - 1].weightKg}
+                  heightCm={profile.heightCm}
+                />
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <BodySilhouette
+                  weightKg={weights[0].weightKg}
+                  heightCm={profile.heightCm}
+                  label="Ahora"
+                  sublabel={format(new Date(weights[0].date), "d MMM yy", { locale: es })}
+                />
+                <p className="text-xs text-slate-400 mt-3">Registra mas pesajes para ver la evolucion</p>
+              </div>
             )}
-            <BodySilhouette
-              weightKg={weights[weights.length - 1].weightKg}
-              heightCm={profile.heightCm}
-              label="Ahora"
-              sublabel={format(new Date(weights[weights.length - 1].date), "d MMM yy", { locale: es })}
-            />
+
+            {/* Objetivo */}
             {profile.goalWeightKg && (
-              <BodySilhouette
-                weightKg={profile.goalWeightKg}
-                heightCm={profile.heightCm}
-                label="Objetivo"
-                faded
-              />
+              <div className="flex flex-col items-center gap-1">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Tu objetivo</p>
+                <BodySilhouette
+                  weightKg={profile.goalWeightKg}
+                  heightCm={profile.heightCm}
+                  label={`${profile.goalWeightKg} kg`}
+                  sublabel={`faltan ${Math.max(0, weights[weights.length - 1].weightKg - profile.goalWeightKg).toFixed(1)} kg`}
+                />
+              </div>
             )}
           </div>
-          {weights.length === 1 && (
-            <p className="text-center text-xs text-slate-400 mt-4">Registra mas pesajes para ver la evolucion de tu figura</p>
-          )}
         </div>
       )}
 
