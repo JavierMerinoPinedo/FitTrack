@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { FoodLog } from "@prisma/client"
 import { startOfDay, endOfDay } from "date-fns"
 import Link from "next/link"
 import MacroRing from "@/components/ui/MacroRing"
@@ -121,7 +120,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="divide-y divide-slate-50">
-            {foodToday.slice(0, 5).map((f: FoodLog) => (
+            {foodToday.slice(0, 5).map((f: { id: string; name: string; mealType: string; quantity: number; unit: string; calories: number; aiDetected: boolean }) => (
               <div key={f.id} className="px-5 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-800">{f.name}</p>
