@@ -7,7 +7,6 @@ import {
 } from "recharts"
 
 interface WeightLog { id: string; date: string; weightKg: number; notes: string | null }
-interface FoodLog { date: string; calories: number }
 
 export default function ProgressPage() {
   const [weights, setWeights] = useState<WeightLog[]>([])
@@ -23,7 +22,6 @@ export default function ProgressPage() {
     const data = await res.json()
     setWeights(data.weights ?? [])
 
-    // Agrupa calorias por dia
     const byDay: Record<string, number> = {}
     for (const f of data.foodLast30 ?? []) {
       const d = format(new Date(f.date), "dd/MM")
@@ -54,43 +52,43 @@ export default function ProgressPage() {
   const change = firstWeight && lastWeight ? (lastWeight - firstWeight).toFixed(1) : null
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Progreso</h1>
         <p className="text-slate-500 text-sm mt-0.5">Evolucion de tu peso y calorias</p>
       </div>
 
-      {/* Resumen */}
+      {/* Resumen — 3 columnas en todos los tamaños pero compacto */}
       {weights.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2 md:gap-4">
           {[
-            { label: "Peso inicial", value: `${firstWeight} kg` },
-            { label: "Peso actual", value: `${lastWeight} kg` },
+            { label: "Inicial", value: `${firstWeight} kg` },
+            { label: "Actual", value: `${lastWeight} kg` },
             {
-              label: "Cambio total",
+              label: "Cambio",
               value: change ? `${Number(change) > 0 ? "+" : ""}${change} kg` : "—",
               color: change && Number(change) < 0 ? "text-emerald-600" : "text-red-500",
             },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-center">
+            <div key={s.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3 md:p-4 text-center">
               <p className="text-xs text-slate-400 font-medium mb-1">{s.label}</p>
-              <p className={`text-xl font-bold ${s.color ?? "text-slate-800"}`}>{s.value}</p>
+              <p className={`text-lg md:text-xl font-bold ${s.color ?? "text-slate-800"}`}>{s.value}</p>
             </div>
           ))}
         </div>
       )}
 
-      {/* Anotar peso */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
+      {/* Anotar peso — columna en movil, fila en escritorio */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5 space-y-3">
         <h3 className="font-semibold text-slate-800 text-sm">Anotar peso de hoy</h3>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="number"
             step="0.1"
             value={newWeight}
             onChange={(e) => setNewWeight(e.target.value)}
             className="flex-1 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
-            placeholder="Ej: 82.5"
+            placeholder="Peso en kg (ej: 82.5)"
           />
           <input
             value={newNotes}
@@ -101,9 +99,9 @@ export default function ProgressPage() {
           <button
             onClick={saveWeight}
             disabled={saving || !newWeight}
-            className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
+            className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors whitespace-nowrap"
           >
-            {saving ? "..." : "Guardar"}
+            {saving ? "Guardando..." : "Guardar"}
           </button>
         </div>
       </div>
@@ -114,13 +112,13 @@ export default function ProgressPage() {
         <>
           {/* Grafica de peso */}
           {weights.length > 1 && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5">
               <h3 className="font-semibold text-slate-800 text-sm mb-4">Evolucion del peso</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={weights.map((w) => ({ date: format(new Date(w.date), "dd/MM"), peso: w.weightKg }))}>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={weights.map((w) => ({ date: format(new Date(w.date), "dd/MM"), peso: w.weightKg }))} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                  <YAxis domain={["auto", "auto"]} tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                  <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10, fill: "#94a3b8" }} width={45} />
                   <Tooltip formatter={(v: any) => [`${v} kg`, "Peso"]} />
                   <Line type="monotone" dataKey="peso" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: "#10b981" }} />
                 </LineChart>
@@ -130,13 +128,13 @@ export default function ProgressPage() {
 
           {/* Grafica de calorias */}
           {calorieData.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5">
               <h3 className="font-semibold text-slate-800 text-sm mb-4">Calorias ultimos 14 dias</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={calorieData}>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={calorieData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} width={45} />
                   <Tooltip formatter={(v: any) => [`${v} kcal`, "Calorias"]} />
                   <Bar dataKey="calories" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -144,15 +142,15 @@ export default function ProgressPage() {
             </div>
           )}
 
-          {/* Historial de peso */}
+          {/* Historial */}
           {weights.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-slate-50">
+              <div className="px-4 md:px-5 py-4 border-b border-slate-50">
                 <h3 className="font-semibold text-slate-800 text-sm">Historial de peso</h3>
               </div>
               <div className="divide-y divide-slate-50 max-h-64 overflow-y-auto">
                 {[...weights].reverse().map((w) => (
-                  <div key={w.id} className="px-5 py-3 flex items-center justify-between">
+                  <div key={w.id} className="px-4 md:px-5 py-3 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-slate-800">{w.weightKg} kg</p>
                       {w.notes && <p className="text-xs text-slate-400">{w.notes}</p>}
