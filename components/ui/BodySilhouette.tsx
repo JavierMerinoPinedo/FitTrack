@@ -1,131 +1,131 @@
 "use client"
 import { motion } from "framer-motion"
 
-// Interpolacion entre dos numeros
 function lerp(a: number, b: number, t: number) {
   return +(a + (b - a) * t).toFixed(2)
 }
 
-// Interpola un string de path SVG (ambos deben tener misma estructura)
-function lerpPath(slim: number[], heavy: number[], t: number): string {
-  return slim.map((v, i) => lerp(v, heavy[i], t)).join(" ")
-}
-
 function getBMIInfo(bmi: number) {
-  if (bmi < 18.5) return { label: "Bajo peso", color: "#60a5fa" }
-  if (bmi < 25)   return { label: "Peso normal", color: "#22c55e" }
-  if (bmi < 30)   return { label: "Sobrepeso", color: "#f59e0b" }
-  if (bmi < 35)   return { label: "Obesidad I", color: "#f97316" }
-  return            { label: "Obesidad II", color: "#ef4444" }
+  if (bmi < 18.5) return { label: "Bajo peso",   color: "#60a5fa" }
+  if (bmi < 25)   return { label: "Peso normal",  color: "#22c55e" }
+  if (bmi < 30)   return { label: "Sobrepeso",    color: "#f59e0b" }
+  if (bmi < 35)   return { label: "Obesidad I",   color: "#f97316" }
+  return            { label: "Obesidad II",  color: "#ef4444" }
 }
 
-// ─── PATHS BASE ────────────────────────────────────────────────────────────────
-// ViewBox: 0 0 200 480   Centro: x=100
-// Cada path es [x1,y1, x2,y2, ...] con la MISMA cantidad de numeros para poder interpolar
+// ─── COORDENADAS BASE ──────────────────────────────────────────────────────────
+// ViewBox 0 0 100 246  |  Centro x=50
+// SLIM  = IMC ~20   |   HEAVY = IMC ~38
 
-// TORSO: de cuello a crotch (sin brazos)
-// Orden: M + lado derecho bajando + L crotch + lado izquierdo subiendo + Z
-const TORSO_SLIM = [
-  // M - inicio cuello derecha
-  108, 90,
+// TORSO:  M(2) + C(6)×5 + L(2) + L(2) + C(6)×5 + Z  = 66 valores
+const T_SLIM = [
+  // M (cuello derecho)
+  56, 32,
   // C hombro derecho
-  110, 87,  145, 92,  148, 108,
+  66, 32,  76, 38,  76, 44,
   // C pecho derecho
-  150, 120,  148, 135, 142, 148,
-  // C cintura derecha (ESTRECHA)
-  136, 162,  120, 170, 118, 182,
-  // C cadera derecha
-  120, 194,  138, 204, 140, 216,
-  // L crotch derecha
-  118, 232,
-  // L crotch izquierda
-  82,  232,
+  76, 54,  76, 62,  76, 68,
+  // C cintura derecha — se ESTRECHA notablemente
+  74, 84,  68, 96,  64, 108,
+  // C cadera derecha — se ENSANCHA
+  62, 118, 68, 126, 72, 134,
+  // C esquina crotch derecho
+  72, 142, 64, 148, 56, 152,
+  // L — V del crotch
+  50, 158,
+  // L — esquina crotch izquierdo
+  44, 152,
   // C cadera izquierda
-  60,  216,  62,  204, 64,  194,
-  // C cintura izquierda (ESTRECHA)
-  62,  182,  64,  162, 58,  148,
+  36, 148, 28, 142, 28, 134,
+  // C cintura izquierda — ESTRECHA
+  32, 126, 36, 118, 36, 108,
   // C pecho izquierdo
-  52,  135,  50,  120, 52,  108,
-  // C hombro izquierdo
-  55,  92,   90,  87,  92,  90,
+  26, 96,  24, 84,  24, 68,
+  // C axila / hombro izquierdo
+  24, 62,  24, 54,  24, 44,
+  // C cuello izquierdo
+  24, 38,  34, 32,  44, 32,
 ]
 
-const TORSO_HEAVY = [
-  // M - inicio cuello derecha
-  108, 90,
+const T_HEAVY = [
+  // M (cuello derecho)
+  56, 32,
   // C hombro derecho
-  110, 87,  152, 90,  154, 108,
-  // C pecho derecho (mas ancho)
-  158, 122,  162, 140, 162, 155,
-  // C barriga derecha (GRANDE - sin cintura)
-  164, 172,  162, 186, 160, 198,
-  // C cadera derecha (ancha)
-  158, 212,  156, 220, 154, 228,
-  // L crotch derecha
-  122, 238,
-  // L crotch izquierda
-  78,  238,
+  66, 32,  80, 38,  80, 44,
+  // C pecho derecho — más ancho
+  80, 54,  84, 62,  84, 68,
+  // C barriga derecha — SIN cintura, sale hacia afuera
+  85, 84,  86, 100, 86, 108,
+  // C cadera derecha — muy ancha
+  86, 118, 84, 126, 80, 134,
+  // C esquina crotch derecho
+  78, 142, 70, 148, 62, 152,
+  // L
+  50, 158,
+  // L
+  38, 152,
   // C cadera izquierda
-  44,  228,  44,  220, 42,  212,
-  // C barriga izquierda (GRANDE)
-  40,  198,  38,  186, 36,  172,
+  30, 148, 22, 142, 20, 134,
+  // C barriga izquierda — muy ancha
+  16, 126, 14, 118, 14, 108,
   // C pecho izquierdo
-  38,  155,  38,  140, 42,  122,
-  // C hombro izquierdo
-  46,  108,  48,  90,  92,  90,
+  14, 100, 15, 84,  16, 68,
+  // C axila / hombro
+  16, 62,  20, 54,  20, 44,
+  // C cuello
+  20, 38,  34, 32,  44, 32,
 ]
 
-// BRAZO DERECHO: desde hombro hasta muneca
-const ARM_R_SLIM  = [148,108, 156,116, 162,128, 166,148, 162,168, 156,188, 152,198, 142,202, 138,196, 140,178, 142,158, 140,138, 140,118, 140,108]
-const ARM_R_HEAVY = [154,108, 164,116, 172,130, 178,152, 174,172, 168,192, 162,202, 150,206, 144,198, 146,178, 148,158, 148,136, 148,116, 148,108]
-
-// BRAZO IZQUIERDO
-const ARM_L_SLIM  = [52,108, 44,116, 38,128, 34,148, 38,168, 44,188, 48,198, 58,202, 62,196, 60,178, 58,158, 60,138, 60,118, 60,108]
-const ARM_L_HEAVY = [46,108, 36,116, 28,130, 22,152, 26,172, 32,192, 38,202, 50,206, 56,198, 54,178, 52,158, 52,136, 52,116, 52,108]
-
-// PIERNA DERECHA
-const LEG_R_SLIM  = [118,232, 126,244, 132,262, 134,284, 130,310, 124,338, 120,364, 118,390, 118,418, 116,440, 114,456, 128,460, 138,456, 134,440, 130,418, 128,390, 126,364, 124,338, 118,310, 112,284, 106,262, 102,244, 100,232]
-const LEG_R_HEAVY = [122,238, 134,252, 142,272, 146,296, 140,322, 132,350, 126,376, 122,402, 120,428, 116,446, 114,460, 130,464, 140,460, 136,446, 132,428, 128,402, 124,376, 118,350, 108,322, 102,296, 94,272, 88,252, 84,238]
+// PIERNA DERECHA: M(2) + C(6)×2 + L(2)×4 + C(6)×2 + Z  = 34 valores
+const RL_SLIM = [
+  53, 153,
+  53, 163, 54, 176, 54, 190,
+  54, 204, 53, 216, 52, 228,
+  47, 230,  47, 234,
+  63, 234,  63, 230,
+  62, 216, 62, 204, 62, 190,
+  63, 176, 64, 163, 65, 153,
+]
+const RL_HEAVY = [
+  54, 153,
+  56, 163, 58, 178, 60, 192,
+  61, 207, 59, 218, 57, 228,
+  50, 230,  50, 234,
+  70, 234,  70, 230,
+  68, 218, 67, 207, 67, 192,
+  68, 178, 70, 163, 68, 153,
+]
 
 // PIERNA IZQUIERDA
-const LEG_L_SLIM  = [82,232, 98,244, 94,262, 90,284, 86,310, 80,338, 76,364, 74,390, 72,418, 70,440, 68,456, 82,460, 86,456, 84,440, 82,418, 82,390, 80,364, 76,338, 70,310, 68,284, 68,262, 74,244, 82,232]
-const LEG_L_HEAVY = [78,238, 92,252, 88,272, 80,296, 70,322, 62,350, 58,376, 56,402, 54,428, 52,446, 50,460, 66,464, 70,460, 68,446, 66,428, 66,402, 64,376, 68,350, 78,322, 88,296, 100,272, 106,252, 116,238]
+const LL_SLIM = [
+  47, 153,
+  47, 163, 46, 176, 46, 190,
+  46, 204, 47, 216, 48, 228,
+  53, 230,  53, 234,
+  37, 234,  37, 230,
+  38, 216, 38, 204, 38, 190,
+  37, 176, 36, 163, 35, 153,
+]
+const LL_HEAVY = [
+  46, 153,
+  44, 163, 42, 178, 40, 192,
+  39, 207, 41, 218, 43, 228,
+  50, 230,  50, 234,
+  30, 234,  30, 230,
+  32, 218, 33, 207, 33, 192,
+  32, 178, 30, 163, 32, 153,
+]
 
-// Convierte array de numeros en path string para torso (M + C x 4 + L + L + C x 4 + Z)
-function buildTorsoPath(pts: number[]): string {
-  const p = pts
-  return [
-    `M ${p[0]} ${p[1]}`,
-    `C ${p[2]} ${p[3]} ${p[4]} ${p[5]} ${p[6]} ${p[7]}`,
-    `C ${p[8]} ${p[9]} ${p[10]} ${p[11]} ${p[12]} ${p[13]}`,
-    `C ${p[14]} ${p[15]} ${p[16]} ${p[17]} ${p[18]} ${p[19]}`,
-    `C ${p[20]} ${p[21]} ${p[22]} ${p[23]} ${p[24]} ${p[25]}`,
-    `L ${p[26]} ${p[27]}`,
-    `L ${p[28]} ${p[29]}`,
-    `C ${p[30]} ${p[31]} ${p[32]} ${p[33]} ${p[34]} ${p[35]}`,
-    `C ${p[36]} ${p[37]} ${p[38]} ${p[39]} ${p[40]} ${p[41]}`,
-    `C ${p[42]} ${p[43]} ${p[44]} ${p[45]} ${p[46]} ${p[47]}`,
-    `C ${p[48]} ${p[49]} ${p[50]} ${p[51]} ${p[52]} ${p[53]}`,
-    `Z`,
-  ].join(" ")
+// ─── CONSTRUCTORES DE PATH ─────────────────────────────────────────────────────
+function buildTorso(p: number[]): string {
+  return `M${p[0]} ${p[1]} C${p[2]} ${p[3]} ${p[4]} ${p[5]} ${p[6]} ${p[7]} C${p[8]} ${p[9]} ${p[10]} ${p[11]} ${p[12]} ${p[13]} C${p[14]} ${p[15]} ${p[16]} ${p[17]} ${p[18]} ${p[19]} C${p[20]} ${p[21]} ${p[22]} ${p[23]} ${p[24]} ${p[25]} C${p[26]} ${p[27]} ${p[28]} ${p[29]} ${p[30]} ${p[31]} L${p[32]} ${p[33]} L${p[34]} ${p[35]} C${p[36]} ${p[37]} ${p[38]} ${p[39]} ${p[40]} ${p[41]} C${p[42]} ${p[43]} ${p[44]} ${p[45]} ${p[46]} ${p[47]} C${p[48]} ${p[49]} ${p[50]} ${p[51]} ${p[52]} ${p[53]} C${p[54]} ${p[55]} ${p[56]} ${p[57]} ${p[58]} ${p[59]} C${p[60]} ${p[61]} ${p[62]} ${p[63]} ${p[64]} ${p[65]} Z`
 }
 
-// Convierte array de numeros en path string para brazo (M + serie de L)
-function buildArmPath(pts: number[]): string {
-  const parts = [`M ${pts[0]} ${pts[1]}`]
-  for (let i = 2; i < pts.length; i += 2) {
-    parts.push(`L ${pts[i]} ${pts[i + 1]}`)
-  }
-  parts.push("Z")
-  return parts.join(" ")
+function buildLeg(p: number[]): string {
+  return `M${p[0]} ${p[1]} C${p[2]} ${p[3]} ${p[4]} ${p[5]} ${p[6]} ${p[7]} C${p[8]} ${p[9]} ${p[10]} ${p[11]} ${p[12]} ${p[13]} L${p[14]} ${p[15]} L${p[16]} ${p[17]} L${p[18]} ${p[19]} L${p[20]} ${p[21]} C${p[22]} ${p[23]} ${p[24]} ${p[25]} ${p[26]} ${p[27]} C${p[28]} ${p[29]} ${p[30]} ${p[31]} ${p[32]} ${p[33]} Z`
 }
 
-// Convierte array de numeros en path string para pierna
-function buildLegPath(pts: number[]): string {
-  return buildArmPath(pts)
-}
-
-// ─── BODY SHAPE COMPONENT ─────────────────────────────────────────────────────
+// ─── BODY SHAPE ────────────────────────────────────────────────────────────────
 function BodyShape({ weightKg, heightCm, color, opacity = 1 }: {
   weightKg: number
   heightCm: number
@@ -134,38 +134,51 @@ function BodyShape({ weightKg, heightCm, color, opacity = 1 }: {
 }) {
   const bmi = weightKg / Math.pow(heightCm / 100, 2)
   const f = Math.max(0, Math.min(1, (bmi - 18) / 20))
+  const l = (a: number, b: number) => lerp(a, b, f)
 
-  const torsoPts  = TORSO_SLIM.map((v, i) => lerp(v, TORSO_HEAVY[i], f))
-  const armRPts   = ARM_R_SLIM.map((v, i) => lerp(v, ARM_R_HEAVY[i], f))
-  const armLPts   = ARM_L_SLIM.map((v, i) => lerp(v, ARM_L_HEAVY[i], f))
-  const legRPts   = LEG_R_SLIM.map((v, i) => lerp(v, LEG_R_HEAVY[i], f))
-  const legLPts   = LEG_L_SLIM.map((v, i) => lerp(v, LEG_L_HEAVY[i], f))
+  const tPts  = T_SLIM.map((v, i) => l(v, T_HEAVY[i]))
+  const rlPts = RL_SLIM.map((v, i) => l(v, RL_HEAVY[i]))
+  const llPts = LL_SLIM.map((v, i) => l(v, LL_HEAVY[i]))
 
-  const torsoD  = buildTorsoPath(torsoPts)
-  const armRD   = buildArmPath(armRPts)
-  const armLD   = buildArmPath(armLPts)
-  const legRD   = buildLegPath(legRPts)
-  const legLD   = buildLegPath(legLPts)
+  const torsoD = buildTorso(tPts)
+  const rlD    = buildLeg(rlPts)
+  const llD    = buildLeg(llPts)
 
-  // Radio cabeza y cuello
-  const headR = lerp(28, 32, f)
-  const neckX = lerp(85, 83, f)
-  const neckW = lerp(30, 34, f)
+  const headR   = l(14, 15.5)
+  const neckX   = l(45, 43)
+  const neckW   = l(10, 14)
+
+  // Brazos (elipses rotadas)
+  const aRcx = l(83, 93),  aRcy = l(80, 82), aRrx = l(6.5, 9.5), aRry = l(24, 27), aRrot = l(5, 9)
+  const aLcx = l(17, 7),   aLcy = l(80, 82), aLrx = l(6.5, 9.5), aLry = l(24, 27), aLrot = l(-5, -9)
+
+  // Pies
+  const fRcx = l(55, 60), fLcx = l(45, 40), fRx = l(9, 11), fRy = l(3.5, 4.5)
+
+  const T = { duration: 0.6, ease: "easeInOut" as const }
 
   return (
     <g opacity={opacity}>
       {/* Cabeza */}
-      <motion.circle cx={100} cy={headR + 4} r={headR} fill={color} animate={{ r: headR }} transition={{ duration: 0.6, ease: "easeInOut" }} />
+      <motion.circle cx={50} cy={headR + 2} r={headR} fill={color} animate={{ r: headR }} transition={T} />
       {/* Cuello */}
-      <motion.rect x={neckX} y={62} width={neckW} height={32} rx={6} fill={color} animate={{ x: neckX, width: neckW }} transition={{ duration: 0.6 }} />
+      <motion.rect x={neckX} y={29} width={neckW} height={8} rx={3} fill={color} animate={{ x: neckX, width: neckW }} transition={T} />
       {/* Torso */}
-      <motion.path d={torsoD} fill={color} animate={{ d: torsoD }} transition={{ duration: 0.6, ease: "easeInOut" }} />
-      {/* Brazos */}
-      <motion.path d={armRD} fill={color} animate={{ d: armRD }} transition={{ duration: 0.6, ease: "easeInOut" }} />
-      <motion.path d={armLD} fill={color} animate={{ d: armLD }} transition={{ duration: 0.6, ease: "easeInOut" }} />
+      <motion.path d={torsoD} fill={color} animate={{ d: torsoD }} transition={T} />
+      {/* Brazo derecho */}
+      <motion.ellipse cx={aRcx} cy={aRcy} rx={aRrx} ry={aRry} fill={color}
+        style={{ transformOrigin: `${aRcx}px ${aRcy}px`, rotate: `${aRrot}deg` }}
+        animate={{ cx: aRcx, cy: aRcy, rx: aRrx, ry: aRry }} transition={T} />
+      {/* Brazo izquierdo */}
+      <motion.ellipse cx={aLcx} cy={aLcy} rx={aLrx} ry={aLry} fill={color}
+        style={{ transformOrigin: `${aLcx}px ${aLcy}px`, rotate: `${aLrot}deg` }}
+        animate={{ cx: aLcx, cy: aLcy, rx: aLrx, ry: aLry }} transition={T} />
       {/* Piernas */}
-      <motion.path d={legRD} fill={color} animate={{ d: legRD }} transition={{ duration: 0.6, ease: "easeInOut" }} />
-      <motion.path d={legLD} fill={color} animate={{ d: legLD }} transition={{ duration: 0.6, ease: "easeInOut" }} />
+      <motion.path d={rlD} fill={color} animate={{ d: rlD }} transition={T} />
+      <motion.path d={llD} fill={color} animate={{ d: llD }} transition={T} />
+      {/* Pies */}
+      <motion.ellipse cx={fRcx} cy={236} rx={fRx} ry={fRy} fill={color} animate={{ cx: fRcx, rx: fRx }} transition={T} />
+      <motion.ellipse cx={fLcx} cy={236} rx={fRx} ry={fRy} fill={color} animate={{ cx: fLcx, rx: fRx }} transition={T} />
     </g>
   )
 }
@@ -176,33 +189,33 @@ export function BodyComparison({ initialWeight, currentWeight, heightCm }: {
   currentWeight: number
   heightCm: number
 }) {
-  const currentBmi = currentWeight / Math.pow(heightCm / 100, 2)
-  const { color: currentColor } = getBMIInfo(currentBmi)
+  const { color } = getBMIInfo(currentWeight / Math.pow(heightCm / 100, 2))
   const change = +(currentWeight - initialWeight).toFixed(1)
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <svg viewBox="0 0 200 470" className="w-40 md:w-52 h-auto">
-        {/* Silueta inicial: azul semitransparente */}
-        <BodyShape weightKg={initialWeight} heightCm={heightCm} color="#3b82f6" opacity={0.4} />
-        {/* Silueta actual: color IMC encima */}
-        <BodyShape weightKg={currentWeight} heightCm={heightCm} color={currentColor} opacity={0.88} />
+      <svg viewBox="0 0 100 246" className="w-44 md:w-56 h-auto drop-shadow-sm">
+        <BodyShape weightKg={initialWeight} heightCm={heightCm} color="#3b82f6" opacity={0.38} />
+        <BodyShape weightKg={currentWeight} heightCm={heightCm} color={color}   opacity={0.90} />
       </svg>
 
-      {/* Leyenda */}
       <div className="flex items-center gap-5 text-xs">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-blue-400 opacity-60" />
+          <div className="w-3 h-3 rounded-full bg-blue-400 opacity-50" />
           <span className="text-slate-500">Inicio <b className="text-slate-700">{initialWeight} kg</b></span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: currentColor }} />
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
           <span className="text-slate-500">Ahora <b className="text-slate-700">{currentWeight} kg</b></span>
         </div>
       </div>
 
-      <div className={`text-sm font-bold px-4 py-1.5 rounded-full ${change < 0 ? "bg-green-100 text-green-700" : change > 0 ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-600"}`}>
-        {change < 0 ? `↓ ${Math.abs(change)} kg perdidos` : change > 0 ? `↑ ${change} kg ganados` : "Sin cambios"}
+      <div className={`text-sm font-bold px-4 py-1.5 rounded-full ${
+        change < 0 ? "bg-green-100 text-green-700" :
+        change > 0 ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-600"
+      }`}>
+        {change < 0 ? `↓ ${Math.abs(change)} kg perdidos` :
+         change > 0 ? `↑ ${change} kg ganados` : "Sin cambios"}
       </div>
     </div>
   )
@@ -221,8 +234,8 @@ export default function BodySilhouette({ weightKg, heightCm, label, sublabel, fa
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <svg viewBox="0 0 200 470" className="w-24 md:w-32 h-auto">
-        <BodyShape weightKg={weightKg} heightCm={heightCm} color={color} opacity={faded ? 0.38 : 1} />
+      <svg viewBox="0 0 100 246" className="w-28 md:w-36 h-auto">
+        <BodyShape weightKg={weightKg} heightCm={heightCm} color={color} opacity={faded ? 0.35 : 1} />
       </svg>
       <div className="text-center">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
