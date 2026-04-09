@@ -122,9 +122,19 @@ export interface WorkoutPlanInput {
   activityLevel: string
   daysPerWeek: number
   equipment?: string
+  fixedDays?: { dayOfWeek: number; name: string; notes?: string }[]
+  homeDays?: number[]
 }
 
 export async function generateWorkoutPlan(input: WorkoutPlanInput): Promise<any> {
+  const fixedDaysStr = input.fixedDays
+    ? input.fixedDays.map((d) => `- dayOfWeek ${d.dayOfWeek}: ${d.name}${d.notes ? ` (${d.notes})` : ""}`).join("\n")
+    : ""
+
+  const homeDaysStr = input.homeDays
+    ? `Los dias ${input.homeDays.join(", ")} (0=Lunes...6=Domingo) genera entrenamiento en casa con ${input.equipment ?? "mancuernas y cardio"}.`
+    : ""
+
   const completion = await groq.chat.completions.create({
     model: GROQ_MODEL,
     messages: [
@@ -134,16 +144,21 @@ export async function generateWorkoutPlan(input: WorkoutPlanInput): Promise<any>
       },
       {
         role: "user",
-        content: `Crea un planning semanal de ejercicios para:
+        content: `Crea un planning semanal de ejercicios (7 dias, dayOfWeek 0=Lunes a 6=Domingo) para:
 - Objetivo: ${input.goal}
-- Actividad: ${input.activityLevel}
-- Dias de entreno: ${input.daysPerWeek}
-${input.equipment ? `- Equipamiento: ${input.equipment}` : "- Sin equipamiento especifico"}
+- Nivel de actividad: ${input.activityLevel}
 
-Devuelve este JSON exacto:
-{"days":[{"dayOfWeek":0,"dayName":"Lunes","restDay":false,"name":"Pecho y Triceps","exercises":[{"name":"Press banca","sets":3,"reps":"8-12","restSeconds":60,"notes":"forma correcta"}]}]}
+DIAS FIJOS ya establecidos (incluyelos exactamente asi):
+${fixedDaysStr}
 
-dayOfWeek: 0=Lunes hasta 6=Domingo. Los dias de descanso: restDay=true y exercises=[]`,
+${homeDaysStr}
+
+Los dias restantes ponlos como descanso (restDay: true, exercises: []).
+
+Devuelve este JSON exacto con los 7 dias:
+{"days":[{"dayOfWeek":0,"dayName":"Lunes","restDay":false,"name":"nombre sesion","exercises":[{"name":"ejercicio","sets":3,"reps":"12-15","restSeconds":60,"notes":"indicacion"}]}]}
+
+Para dias de descanso: {"dayOfWeek":6,"dayName":"Domingo","restDay":true,"name":"Descanso","exercises":[]}`,
       },
     ],
     max_tokens: 4096,

@@ -24,19 +24,26 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
   const userId = session.user!.id as string
-  const { daysPerWeek, equipment } = await req.json().catch(() => ({ daysPerWeek: 4 }))
+  const body = await req.json().catch(() => ({}))
 
   const profile = await prisma.userProfile.findUnique({ where: { userId } })
   if (!profile) {
     return NextResponse.json({ error: "Completa tu perfil primero" }, { status: 400 })
   }
 
-  const aiPlan = await generateWorkoutPlan({
-    goal: profile.goal ?? "lose_weight",
-    activityLevel: profile.activityLevel ?? "moderate",
-    daysPerWeek: daysPerWeek ?? 4,
-    equipment,
-  })
+  let aiPlan: any
+  try {
+    aiPlan = await generateWorkoutPlan({
+      goal: profile.goal ?? "lose_weight",
+      activityLevel: profile.activityLevel ?? "moderate",
+      daysPerWeek: body.daysPerWeek ?? 4,
+      equipment: body.equipment,
+      fixedDays: body.fixedDays,
+      homeDays: body.homeDays,
+    })
+  } catch (e: any) {
+    return NextResponse.json({ error: "Error de IA", details: e.message }, { status: 500 })
+  }
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
 

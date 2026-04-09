@@ -61,7 +61,17 @@ export default function MealPlanPage() {
     const res = await fetch("/api/plans/workout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ daysPerWeek, equipment }),
+      body: JSON.stringify({
+        // Dias fijos: Lunes(0), Miercoles(2), Jueves(3) = baloncesto 1h30
+        fixedDays: [
+          { dayOfWeek: 0, name: "Baloncesto", notes: "1h 30min de baloncesto" },
+          { dayOfWeek: 2, name: "Baloncesto", notes: "1h 30min de baloncesto" },
+          { dayOfWeek: 3, name: "Baloncesto", notes: "1h 30min de baloncesto" },
+        ],
+        // Dias restantes para entreno en casa: Martes(1), Viernes(4), Sabado(5)
+        homeDays: [1, 4, 5],
+        equipment: "mancuernas y cardio en casa",
+      }),
     })
     if (res.ok) {
       setWorkoutPlan(await res.json())
@@ -123,27 +133,11 @@ export default function MealPlanPage() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-3">
-          <h3 className="font-semibold text-slate-800 text-sm">Generar nuevo plan de ejercicios</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Dias de entreno/semana</label>
-              <select
-                value={daysPerWeek}
-                onChange={(e) => setDaysPerWeek(Number(e.target.value))}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
-              >
-                {[3, 4, 5, 6].map((d) => <option key={d} value={d}>{d} dias</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Equipamiento</label>
-              <input
-                value={equipment}
-                onChange={(e) => setEquipment(e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300"
-                placeholder="Gym, mancuernas, sin equipo..."
-              />
-            </div>
+          <h3 className="font-semibold text-slate-800 text-sm">Generar rutina semanal personalizada</h3>
+          <div className="bg-slate-50 rounded-xl p-3 space-y-1 text-xs text-slate-600">
+            <p>🏀 <span className="font-medium">Lun, Mie, Jue</span> — Baloncesto (1h 30min)</p>
+            <p>🏋️ <span className="font-medium">Mar, Vie, Sab</span> — Entreno en casa con mancuernas y cardio</p>
+            <p>😴 <span className="font-medium">Dom</span> — Descanso</p>
           </div>
           <button
             onClick={generateWorkout}
@@ -155,7 +149,7 @@ export default function MealPlanPage() {
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Generando con IA...
               </>
-            ) : "🤖 Generar rutina semanal"}
+            ) : "🤖 Generar mi rutina semanal"}
           </button>
         </div>
       )}
