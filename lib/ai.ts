@@ -1,7 +1,23 @@
 import { GoogleGenAI } from "@google/genai"
+import Groq from "groq-sdk"
 
+// Gemini solo para vision (fotos de comida)
 const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! })
-const MODEL = "gemini-2.0-flash"
+
+// Groq para generacion de texto (plannings)
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+const GROQ_MODEL = "llama-3.3-70b-versatile"
+
+function parseJSON(text: string, source: string): any {
+  const clean = text.replace(/```json|```/g, "").trim()
+  // Extraer JSON si viene envuelto en texto
+  const match = clean.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
+  try {
+    return JSON.parse(match ? match[0] : clean)
+  } catch {
+    throw new Error(`${source} no devolvio JSON valido: ` + clean.slice(0, 300))
+  }
+}
 
 export interface FoodAnalysis {
   foods: {
@@ -19,48 +35,22 @@ export interface FoodAnalysis {
 
 export async function analyzeFoodImage(imageBase64: string, mimeType: string): Promise<FoodAnalysis> {
   const response = await genai.models.generateContent({
-    model: MODEL,
+    model: "gemini-2.0-flash",
     contents: [
       {
         role: "user",
         parts: [
-          {
-            inlineData: {
-              mimeType,
-              data: imageBase64,
-            },
-          },
+          { inlineData: { mimeType, data: imageBase64 } },
           {
             text: `Analiza esta imagen de comida y devuelve un JSON con este formato exacto:
-{
-  "foods": [
-    {
-      "name": "nombre del alimento",
-      "quantity": "cantidad estimada (ej: 150g, 1 unidad)",
-      "calories": 250,
-      "proteinG": 20,
-      "carbsG": 30,
-      "fatG": 8
-    }
-  ],
-  "totalCalories": 250,
-  "confidence": "alta|media|baja",
-  "notes": "observaciones adicionales"
-}
-Solo devuelve el JSON, sin texto adicional ni bloques de codigo.`,
+{"foods":[{"name":"nombre","quantity":"150g","calories":250,"proteinG":20,"carbsG":30,"fatG":8}],"totalCalories":250,"confidence":"alta","notes":""}
+Solo el JSON, sin texto adicional.`,
           },
         ],
       },
     ],
   })
-
-  const text = response.text ?? ""
-  const clean = text.replace(/```json|```/g, "").trim()
-  try {
-    return JSON.parse(clean)
-  } catch {
-    throw new Error("Gemini no devolvio JSON valido: " + clean.slice(0, 200))
-  }
+  return parseJSON(response.text ?? "", "Gemini")
 }
 
 export interface MealPlanInput {
@@ -71,52 +61,34 @@ export interface MealPlanInput {
 }
 
 export async function generateMealPlan(input: MealPlanInput): Promise<any> {
-  const response = await genai.models.generateContent({
-    model: MODEL,
-    contents: [
+  const completion = await groq.chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [
+      {
+        role: "system",
+        content: "Eres un nutricionista experto. Responde SOLO con JSON valido, sin texto adicional ni bloques de codigo markdown.",
+      },
       {
         role: "user",
-        parts: [
-          {
-            text: `Crea un planning semanal de comidas (7 dias) para una persona con:
-- Objetivo calorico diario: ${input.dailyCalories} kcal
+        content: `Crea un planning semanal de comidas (7 dias) para:
+- Calorias diarias: ${input.dailyCalories} kcal
 - Objetivo: ${input.goal}
-- Nivel de actividad: ${input.activityLevel}
-${input.preferences ? `- Preferencias/restricciones: ${input.preferences}` : ""}
+- Actividad: ${input.activityLevel}
+${input.preferences ? `- Preferencias: ${input.preferences}` : ""}
 
-Devuelve SOLO un JSON sin bloques de codigo con este formato:
-{
-  "days": [
-    {
-      "dayOfWeek": 0,
-      "dayName": "Lunes",
-      "meals": [
-        {
-          "mealType": "breakfast|lunch|dinner|snack",
-          "name": "nombre del plato",
-          "calories": 400,
-          "proteinG": 30,
-          "carbsG": 45,
-          "fatG": 12,
-          "recipe": "instrucciones breves de preparacion"
-        }
-      ]
-    }
-  ]
-}`,
-          },
-        ],
+Devuelve este JSON exacto:
+{"days":[{"dayOfWeek":0,"dayName":"Lunes","meals":[{"mealType":"breakfast","name":"nombre plato","calories":400,"proteinG":30,"carbsG":45,"fatG":12,"recipe":"preparacion breve"}]}]}
+
+dayOfWeek: 0=Lunes, 1=Martes, 2=Miercoles, 3=Jueves, 4=Viernes, 5=Sabado, 6=Domingo
+mealType: breakfast, lunch, dinner o snack`,
       },
     ],
+    max_tokens: 4096,
+    temperature: 0.7,
   })
 
-  const text = response.text ?? ""
-  const clean = text.replace(/```json|```/g, "").trim()
-  try {
-    return JSON.parse(clean)
-  } catch {
-    throw new Error("Gemini no devolvio JSON valido: " + clean.slice(0, 200))
-  }
+  const text = completion.choices[0]?.message?.content ?? ""
+  return parseJSON(text, "Groq")
 }
 
 export interface WorkoutPlanInput {
@@ -127,50 +99,31 @@ export interface WorkoutPlanInput {
 }
 
 export async function generateWorkoutPlan(input: WorkoutPlanInput): Promise<any> {
-  const response = await genai.models.generateContent({
-    model: MODEL,
-    contents: [
+  const completion = await groq.chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [
+      {
+        role: "system",
+        content: "Eres un entrenador personal experto. Responde SOLO con JSON valido, sin texto adicional ni bloques de codigo markdown.",
+      },
       {
         role: "user",
-        parts: [
-          {
-            text: `Crea un planning semanal de ejercicios para una persona con:
+        content: `Crea un planning semanal de ejercicios para:
 - Objetivo: ${input.goal}
-- Nivel de actividad: ${input.activityLevel}
-- Dias de entrenamiento por semana: ${input.daysPerWeek}
-${input.equipment ? `- Equipamiento disponible: ${input.equipment}` : "- Sin equipamiento especifico"}
+- Actividad: ${input.activityLevel}
+- Dias de entreno: ${input.daysPerWeek}
+${input.equipment ? `- Equipamiento: ${input.equipment}` : "- Sin equipamiento especifico"}
 
-Devuelve SOLO un JSON sin bloques de codigo con este formato:
-{
-  "days": [
-    {
-      "dayOfWeek": 0,
-      "dayName": "Lunes",
-      "restDay": false,
-      "name": "nombre del entrenamiento (ej: Pecho y Triceps)",
-      "exercises": [
-        {
-          "name": "nombre del ejercicio",
-          "sets": 3,
-          "reps": "8-12",
-          "restSeconds": 60,
-          "notes": "indicaciones de forma o progresion"
-        }
-      ]
-    }
-  ]
-}`,
-          },
-        ],
+Devuelve este JSON exacto:
+{"days":[{"dayOfWeek":0,"dayName":"Lunes","restDay":false,"name":"Pecho y Triceps","exercises":[{"name":"Press banca","sets":3,"reps":"8-12","restSeconds":60,"notes":"forma correcta"}]}]}
+
+dayOfWeek: 0=Lunes hasta 6=Domingo. Los dias de descanso: restDay=true y exercises=[]`,
       },
     ],
+    max_tokens: 4096,
+    temperature: 0.7,
   })
 
-  const text = response.text ?? ""
-  const clean = text.replace(/```json|```/g, "").trim()
-  try {
-    return JSON.parse(clean)
-  } catch {
-    throw new Error("Gemini no devolvio JSON valido: " + clean.slice(0, 200))
-  }
+  const text = completion.choices[0]?.message?.content ?? ""
+  return parseJSON(text, "Groq")
 }
