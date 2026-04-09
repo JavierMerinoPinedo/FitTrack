@@ -51,7 +51,7 @@ export default function MealPlanPage() {
       setMealPlan(await res.json())
     } else {
       const err = await res.json().catch(() => ({}))
-      alert("Error: " + (err.error ?? err.details ?? res.status))
+      alert("Error: " + (err.error ?? res.status) + (err.details ? "\nDetalle: " + err.details : ""))
     }
     setGenerating(false)
   }

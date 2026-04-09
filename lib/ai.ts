@@ -56,7 +56,11 @@ Solo devuelve el JSON, sin texto adicional ni bloques de codigo.`,
 
   const text = response.text ?? ""
   const clean = text.replace(/```json|```/g, "").trim()
-  return JSON.parse(clean)
+  try {
+    return JSON.parse(clean)
+  } catch {
+    throw new Error("Gemini no devolvio JSON valido: " + clean.slice(0, 200))
+  }
 }
 
 export interface MealPlanInput {
@@ -108,7 +112,11 @@ Devuelve SOLO un JSON sin bloques de codigo con este formato:
 
   const text = response.text ?? ""
   const clean = text.replace(/```json|```/g, "").trim()
-  return JSON.parse(clean)
+  try {
+    return JSON.parse(clean)
+  } catch {
+    throw new Error("Gemini no devolvio JSON valido: " + clean.slice(0, 200))
+  }
 }
 
 export interface WorkoutPlanInput {
@@ -160,5 +168,9 @@ Devuelve SOLO un JSON sin bloques de codigo con este formato:
 
   const text = response.text ?? ""
   const clean = text.replace(/```json|```/g, "").trim()
-  return JSON.parse(clean)
+  try {
+    return JSON.parse(clean)
+  } catch {
+    throw new Error("Gemini no devolvio JSON valido: " + clean.slice(0, 200))
+  }
 }
