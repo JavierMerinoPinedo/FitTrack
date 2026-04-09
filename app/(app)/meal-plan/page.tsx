@@ -47,8 +47,12 @@ export default function MealPlanPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ preferences }),
     })
-    if (res.ok) setMealPlan(await res.json())
-    else alert("Error generando plan. Completa tu perfil primero.")
+    if (res.ok) {
+      setMealPlan(await res.json())
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert("Error: " + (err.error ?? err.details ?? res.status))
+    }
     setGenerating(false)
   }
 
@@ -59,8 +63,12 @@ export default function MealPlanPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ daysPerWeek, equipment }),
     })
-    if (res.ok) setWorkoutPlan(await res.json())
-    else alert("Error generando plan. Completa tu perfil primero.")
+    if (res.ok) {
+      setWorkoutPlan(await res.json())
+    } else {
+      const err = await res.json().catch(() => ({}))
+      alert("Error: " + (err.error ?? err.details ?? res.status))
+    }
     setGenerating(false)
   }
 

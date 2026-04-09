@@ -51,12 +51,17 @@ export async function POST(req: Request) {
     }
   }
 
-  const aiPlan = await generateMealPlan({
+  let aiPlan: any
+  try {
+    aiPlan = await generateMealPlan({
     dailyCalories,
     goal: profile.goal ?? "maintain",
     activityLevel: profile.activityLevel ?? "moderate",
-    preferences,
-  })
+      preferences,
+    })
+  } catch (e: any) {
+    return NextResponse.json({ error: "Error de IA", details: e.message }, { status: 500 })
+  }
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
 
