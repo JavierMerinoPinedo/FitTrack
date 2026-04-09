@@ -8,7 +8,7 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
   const userId = session.user!.id as string
-  const [weights, foodLast30] = await Promise.all([
+  const [weights, foodLast30, profile] = await Promise.all([
     prisma.weightLog.findMany({
       where: { userId },
       orderBy: { date: "asc" },
@@ -21,9 +21,10 @@ export async function GET() {
       },
       orderBy: { date: "asc" },
     }),
+    prisma.userProfile.findUnique({ where: { userId } }),
   ])
 
-  return NextResponse.json({ weights, foodLast30 })
+  return NextResponse.json({ weights, foodLast30, profile })
 }
 
 export async function POST(req: Request) {

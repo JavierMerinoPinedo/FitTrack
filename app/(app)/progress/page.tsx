@@ -5,12 +5,15 @@ import { es } from "date-fns/locale"
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
 } from "recharts"
+import BodySilhouette from "@/components/ui/BodySilhouette"
 
 interface WeightLog { id: string; date: string; weightKg: number; notes: string | null }
+interface Profile { heightCm: number | null; goalWeightKg: number | null }
 
 export default function ProgressPage() {
   const [weights, setWeights] = useState<WeightLog[]>([])
   const [calorieData, setCalorieData] = useState<{ date: string; calories: number }[]>([])
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [newWeight, setNewWeight] = useState("")
   const [newNotes, setNewNotes] = useState("")
@@ -21,6 +24,7 @@ export default function ProgressPage() {
     const res = await fetch("/api/progress")
     const data = await res.json()
     setWeights(data.weights ?? [])
+    setProfile(data.profile ?? null)
 
     const byDay: Record<string, number> = {}
     for (const f of data.foodLast30 ?? []) {
@@ -75,6 +79,41 @@ export default function ProgressPage() {
               <p className={`text-lg md:text-xl font-bold ${s.color ?? "text-slate-800"}`}>{s.value}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Silueta corporal */}
+      {profile?.heightCm && weights.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <h3 className="font-semibold text-slate-800 text-sm mb-5">Tu figura</h3>
+          <div className="flex justify-around items-end gap-2">
+            {weights.length > 1 && (
+              <BodySilhouette
+                weightKg={weights[0].weightKg}
+                heightCm={profile.heightCm}
+                label="Inicio"
+                sublabel={format(new Date(weights[0].date), "d MMM yy", { locale: es })}
+                faded
+              />
+            )}
+            <BodySilhouette
+              weightKg={weights[weights.length - 1].weightKg}
+              heightCm={profile.heightCm}
+              label="Ahora"
+              sublabel={format(new Date(weights[weights.length - 1].date), "d MMM yy", { locale: es })}
+            />
+            {profile.goalWeightKg && (
+              <BodySilhouette
+                weightKg={profile.goalWeightKg}
+                heightCm={profile.heightCm}
+                label="Objetivo"
+                faded
+              />
+            )}
+          </div>
+          {weights.length === 1 && (
+            <p className="text-center text-xs text-slate-400 mt-4">Registra mas pesajes para ver la evolucion de tu figura</p>
+          )}
         </div>
       )}
 
