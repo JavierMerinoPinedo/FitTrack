@@ -53,6 +53,32 @@ Solo el JSON, sin texto adicional.`,
   return parseJSON(response.text ?? "", "Gemini")
 }
 
+export async function analyzeFoodText(text: string): Promise<FoodAnalysis> {
+  const completion = await groq.chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [
+      {
+        role: "system",
+        content: "Eres un nutricionista experto. Analiza descripciones de comida y devuelve SOLO JSON valido sin markdown.",
+      },
+      {
+        role: "user",
+        content: `Estima las calorias y macros de lo siguiente: "${text}"
+
+Devuelve este JSON exacto:
+{"foods":[{"name":"nombre alimento","quantity":"cantidad estimada","calories":250,"proteinG":20,"carbsG":30,"fatG":8}],"totalCalories":250,"confidence":"alta","notes":"observacion si hay incertidumbre"}
+
+Si hay varios alimentos, pon uno por elemento en foods. Se realista con las cantidades tipicas españolas.`,
+      },
+    ],
+    max_tokens: 1024,
+    temperature: 0.3,
+  })
+
+  const raw = completion.choices[0]?.message?.content ?? ""
+  return parseJSON(raw, "Groq")
+}
+
 export interface MealPlanInput {
   dailyCalories: number
   goal: string
