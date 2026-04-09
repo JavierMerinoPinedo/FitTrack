@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { generateMealPlan } from "@/lib/ai"
-import { startOfWeek } from "date-fns"
+import { calculateDailyCalories } from "@/lib/calories"
+import { startOfWeek, differenceInYears } from "date-fns"
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions)
@@ -27,12 +28,31 @@ export async function POST(req: Request) {
   const { preferences } = await req.json().catch(() => ({}))
 
   const profile = await prisma.userProfile.findUnique({ where: { userId } })
-  if (!profile?.dailyCalories) {
+  if (!profile) {
     return NextResponse.json({ error: "Completa tu perfil primero" }, { status: 400 })
   }
 
+  // Si dailyCalories no esta guardado, lo calculamos al vuelo o usamos 2000 como base
+  let dailyCalories = profile.dailyCalories
+  if (!dailyCalories) {
+    if (profile.weightKg && profile.heightCm && profile.birthDate && profile.gender && profile.activityLevel && profile.goal) {
+      const age = differenceInYears(new Date(), profile.birthDate)
+      dailyCalories = calculateDailyCalories({
+        weightKg: profile.weightKg,
+        heightCm: profile.heightCm,
+        age,
+        gender: profile.gender,
+        activityLevel: profile.activityLevel,
+        goal: profile.goal,
+      })
+    } else {
+      // Fallback razonable segun objetivo
+      dailyCalories = profile.goal === "lose_weight" ? 1600 : profile.goal === "gain_muscle" ? 2500 : 2000
+    }
+  }
+
   const aiPlan = await generateMealPlan({
-    dailyCalories: profile.dailyCalories,
+    dailyCalories,
     goal: profile.goal ?? "maintain",
     activityLevel: profile.activityLevel ?? "moderate",
     preferences,
